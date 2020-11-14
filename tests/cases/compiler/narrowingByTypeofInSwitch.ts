@@ -1,5 +1,4 @@
-// @strictNullChecks: true
-// @strictFunctionTypes: true
+// @strict: true
 
 function assertNever(x: never) {
     return x;
@@ -29,6 +28,10 @@ function assertObject(x: object) {
     return x;
 }
 
+function assertObjectOrNull(x: object | null) {
+    return x;
+}
+
 function assertUndefined(x: undefined) {
     return x;
 }
@@ -37,11 +40,11 @@ function assertAll(x: Basic) {
     return x;
 }
 
-function assertStringOrNumber(x: string | number)  {
+function assertStringOrNumber(x: string | number) {
     return x;
 }
 
-function assertBooleanOrObject(x: boolean | object)  {
+function assertBooleanOrObject(x: boolean | object) {
     return x;
 }
 
@@ -210,5 +213,104 @@ function fallThroughTest(x: string | number | boolean | object) {
         case 'boolean':
             assertBooleanOrObject(x);
             break;
+    }
+}
+
+function unknownNarrowing(x: unknown) {
+    switch (typeof x) {
+        case 'number': assertNumber(x); return;
+        case 'boolean': assertBoolean(x); return;
+        case 'function': assertFunction(x); return;
+        case 'symbol': assertSymbol(x); return;
+        case 'object': assertObjectOrNull(x); return;
+        case 'string': assertString(x); return;
+        case 'undefined': assertUndefined(x); return;
+    }
+}
+
+function keyofNarrowing<S extends { [K in keyof S]: string }>(k: keyof S) {
+    function assertKeyofS(k1: keyof S) { }
+    switch (typeof k) {
+        case 'number': assertNumber(k); assertKeyofS(k); return;
+        case 'symbol': assertSymbol(k); assertKeyofS(k); return;
+        case 'string': assertString(k); assertKeyofS(k); return;
+    }
+}
+
+function narrowingNarrows(x: {} | undefined) {
+    switch (typeof x) {
+        case 'number': assertNumber(x); return;
+        case 'boolean': assertBoolean(x); return;
+        case 'function': assertFunction(x); return;
+        case 'symbol': assertSymbol(x); return;
+        case 'object': const _: {} = x; return;
+        case 'string': assertString(x); return;
+        case 'undefined': assertUndefined(x); return;
+        case 'number': assertNever(x); return;
+        default: const _y: {} = x; return;
+    }
+}
+
+function narrowingNarrows2(x: true | 3 | 'hello' | undefined) {
+    switch (typeof x) {
+        case 'number': assertNumber(x); return;
+        case 'boolean': assertBoolean(x); return;
+        case 'function': assertNever(x); return;
+        case 'symbol': assertNever(x); return;
+        case 'object': const _: {} = assertNever(x); return;
+        case 'string': assertString(x); return;
+        case 'undefined': assertUndefined(x); return;
+        case 'number': assertNever(x); return;
+        default: const _y: {} = assertNever(x); return;
+    }
+}
+
+/* Template literals */
+
+function testUnionWithTempalte(x: Basic) {
+    switch (typeof x) {
+        case `number`: assertNumber(x); return;
+        case `boolean`: assertBoolean(x); return;
+        case `function`: assertFunction(x); return;
+        case `symbol`: assertSymbol(x); return;
+        case `object`: assertObject(x); return;
+        case `string`: assertString(x); return;
+        case `undefined`: assertUndefined(x); return;
+    }
+    assertNever(x);
+}
+
+function fallThroughTestWithTempalte(x: string | number | boolean | object) {
+    switch (typeof x) {
+        case `number`:
+            assertNumber(x)
+        case `string`:
+            assertStringOrNumber(x)
+            break;
+        default:
+            assertObject(x);
+        case `number`:
+        case `boolean`:
+            assertBooleanOrObject(x);
+            break;
+    }
+}
+
+function keyofNarrowingWithTemplate<S extends { [K in keyof S]: string }>(k: keyof S) {
+    function assertKeyofS(k1: keyof S) { }
+    switch (typeof k) {
+        case `number`: assertNumber(k); assertKeyofS(k); return;
+        case `symbol`: assertSymbol(k); assertKeyofS(k); return;
+        case `string`: assertString(k); assertKeyofS(k); return;
+    }
+}
+
+/* Both string literals and template literals */
+
+function multipleGenericFuseWithBoth<X extends L | number, Y extends R | number>(xy: X | Y): [X, number] | [Y, string] | [(X | Y)] {
+    switch (typeof xy) {
+        case `function`: return [xy, 1];
+        case 'object': return [xy, 'two'];
+        case `number`: return [xy]
     }
 }

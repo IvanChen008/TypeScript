@@ -118,16 +118,8 @@ namespace ts {
     export function createDocumentRegistryInternal(useCaseSensitiveFileNames?: boolean, currentDirectory = "", externalCache?: ExternalDocumentCache): DocumentRegistry {
         // Maps from compiler setting target (ES3, ES5, etc.) to all the cached documents we have
         // for those settings.
-        const buckets = createMap<Map<DocumentRegistryEntry>>();
+        const buckets = new Map<string, ESMap<Path, DocumentRegistryEntry>>();
         const getCanonicalFileName = createGetCanonicalFileName(!!useCaseSensitiveFileNames);
-
-        function getBucketForCompilationSettings(key: DocumentRegistryBucketKey, createIfMissing: boolean): Map<DocumentRegistryEntry> {
-            let bucket = buckets.get(key);
-            if (!bucket && createIfMissing) {
-                buckets.set(key, bucket = createMap<DocumentRegistryEntry>());
-            }
-            return bucket!; // TODO: GH#18217
-        }
 
         function reportStats() {
             const bucketInfoArray = arrayFrom(buckets.keys()).filter(name => name && name.charAt(0) === "_").map(name => {
@@ -178,7 +170,7 @@ namespace ts {
             acquiring: boolean,
             scriptKind?: ScriptKind): SourceFile {
 
-            const bucket = getBucketForCompilationSettings(key, /*createIfMissing*/ true);
+            const bucket = getOrUpdate(buckets, key, () => new Map<Path, DocumentRegistryEntry>());
             let entry = bucket.get(path);
             const scriptTarget = scriptKind === ScriptKind.JSON ? ScriptTarget.JSON : compilationSettings.target || ScriptTarget.ES5;
             if (!entry && externalCache) {
@@ -238,9 +230,7 @@ namespace ts {
         }
 
         function releaseDocumentWithKey(path: Path, key: DocumentRegistryBucketKey): void {
-            const bucket = getBucketForCompilationSettings(key, /*createIfMissing*/ false);
-            Debug.assert(bucket !== undefined);
-
+            const bucket = Debug.checkDefined(buckets.get(key));
             const entry = bucket.get(path)!;
             entry.languageServiceRefCount--;
 

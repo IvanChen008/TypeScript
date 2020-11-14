@@ -30,6 +30,16 @@ const obj = {};
 >obj : {}
 >{} : {}
 
+// OK
+<Poisoned {...{x: "ok", y: "2"}} />;
+><Poisoned {...{x: "ok", y: "2"}} /> : JSX.Element
+>Poisoned : typeof Poisoned
+>{x: "ok", y: "2"} : { x: string; y: "2"; }
+>x : string
+>"ok" : "ok"
+>y : "2"
+>"2" : "2"
+
 // Error
 let p = <Poisoned {...obj} />;
 >p : JSX.Element
